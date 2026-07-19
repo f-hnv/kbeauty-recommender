@@ -1,15 +1,3 @@
-"""
-main.py — v5: conectado a PostgreSQL via SQLAlchemy.
-En vez de devolver productos sueltos, ahora devuelve una RUTINA
-completa de 4 pasos (limpiador -> tonico -> serum -> crema_hidratante),
-cada uno con su funcion generica, la razon especifica del producto
-elegido, y el precio ya convertido a la moneda del pais.
-
-Correr:
-    pip install fastapi uvicorn sqlalchemy psycopg2-binary
-    uvicorn main:app --reload
-"""
-
 import unicodedata
 from typing import List, Optional
 
@@ -27,10 +15,6 @@ app = FastAPI(
     version="0.6.0",
 )
 
-# CORS restrictivo: solo los origenes definidos en ALLOWED_ORIGINS (.env).
-# Nunca "*" en produccion — si el frontend corre en un origen que no esta
-# en esta lista, el navegador bloqueara la peticion (comportamiento
-# esperado, no un bug).
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins_list,
