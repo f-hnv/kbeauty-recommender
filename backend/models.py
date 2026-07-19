@@ -1,7 +1,3 @@
-"""
-models.py — Modelos ORM de SQLAlchemy, mapeados 1:1 a schema_bd_v2.sql.
-"""
-
 from sqlalchemy import Column, String, Numeric, Boolean, DateTime, Text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.sql import func
