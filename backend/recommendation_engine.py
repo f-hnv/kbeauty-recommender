@@ -1,19 +1,3 @@
-"""
-Motor de recomendación de skincare — versión base (rule-based),
-pensado para ser el "cerebro" que luego se expone vía FastAPI o
-se llama desde un backend Java/Spring Boot.
-
-Diseño en 2 capas:
-  1) Perfilado del usuario -> vector de necesidades
-  2) Matching contra catálogo de productos -> ranking de recomendaciones
-
-Esta capa 2 hoy es basada en reglas + scoring ponderado (transparente,
-fácil de auditar y de explicar en una tesis/proyecto académico).
-Se deja el punto de extensión para migrar a un modelo de ML real
-(ej. similitud de embeddings o un clasificador entrenado con feedback
-de usuarios) sin romper la interfaz pública `recomendar()`.
-"""
-
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
@@ -55,7 +39,7 @@ class Producto:
     tipos_piel_recomendados: list
     preocupaciones_que_trata: list
     precio_usd: float
-    links_compra: dict = field(default_factory=dict)  # {"CL": url, "MX": url, ...}
+    links_compra: dict = field(default_factory=dict) 
 
 
 # --- Catálogo mínimo de ejemplo (en producción esto viene de la BD) ---
@@ -138,10 +122,6 @@ def _score_producto(producto: Producto, perfil: PerfilUsuario) -> float:
 
 
 def recomendar(perfil: PerfilUsuario, catalogo: list = None, top_n: int = 3) -> list:
-    """
-    Punto de entrada principal. Devuelve una lista de dicts listos
-    para serializar como JSON en la respuesta de la API.
-    """
     catalogo = catalogo if catalogo is not None else CATALOGO_EJEMPLO
 
     candidatos = [(p, _score_producto(p, perfil)) for p in catalogo]
