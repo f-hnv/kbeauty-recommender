@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skincare Recommender — Test Frontend</title>
+<style>
+  :root {
+    --bg: #faf8f5;
+    --panel: #ffffff;
+    --border: #e4ddd3;
+    --text: #2b2621;
+    --muted: #7a7168;
+    --accent: #5f7a61;
+    --accent-dark: #46603f;
+    --error: #b3452f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 32px 16px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  label { display: block; font-size: 0.85rem; font-weight: 600; margin: 14px 0 6px; }
+  select, input {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    background: #fff;
+  }
+  .checks { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .checks label {
+    display: flex; align-items: center; gap: 6px;
+    font-weight: 400; font-size: 0.88rem;
+    border: 1px solid var(--border);
+    padding: 6px 10px; border-radius: 20px; margin: 0;
+    cursor: pointer;
+  }
+  .checks input { width: auto; }
+
+  button {
+    margin-top: 20px;
+    width: 100%;
+    padding: 11px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover { background: var(--accent-dark); }
+  button:disabled { background: var(--muted); cursor: not-allowed; }
+
+  #status { font-size: 0.85rem; color: var(--muted); margin-top: 10px; min-height: 18px; }
+  #status.error { color: var(--error); }
+
+  .card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    background: var(--panel);
+  }
+  .card-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .card-name { font-weight: 600; font-size: 0.95rem; }
+  .card-score {
+    font-size: 0.75rem; color: var(--accent-dark);
+    background: #eef2ec; padding: 2px 8px; border-radius: 12px;
+  }
+  .card-meta { font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
+  .card a {
+    display: inline-block; margin-top: 8px; font-size: 0.85rem;
+    color: var(--accent-dark); text-decoration: none; font-weight: 600;
+  }
+  .card a:hover { text-decoration: underline; }
+
+  #config { font-size: 0.78rem; color: var(--muted); margin-top: 6px; }
+  #config input { display: inline; width: auto; font-size: 0.78rem; padding: 3px 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Skincare Recommender</h1>
+  <p class="subtitle">Frontend de prueba — envía un perfil y muestra la respuesta real de tu API</p>
+
+  <div class="panel">
+    <div id="config">
+      URL de la API:
+      <input type="text" id="apiUrl" value="http://127.0.0.1:8000/recomendar">
+    </div>
+
+    <label for="tipoPiel">Tipo de piel</label>
+    <select id="tipoPiel">
+      <option value="grasa_mixta" selected>Grasa / Mixta</option>
+      <option value="seca">Seca</option>
+      <option value="sensible">Sensible</option>
+      <option value="normal">Normal</option>
+    </select>
+
+    <label>Preocupaciones</label>
+    <div class="checks">
+      <label><input type="checkbox" value="acne" checked> Acné</label>
+      <label><input type="checkbox" value="manchas"> Manchas</label>
+      <label><input type="checkbox" value="rojeces" checked> Rojeces</label>
+      <label><input type="checkbox" value="arrugas"> Arrugas</label>
+      <label><input type="checkbox" value="deshidratacion"> Deshidratación</label>
+      <label><input type="checkbox" value="textura_irregular"> Textura irregular</label>
+    </div>
+
+    <label for="presupuesto">Presupuesto máximo (USD, opcional)</label>
+    <input type="number" id="presupuesto" placeholder="ej. 25" min="0">
+
+    <label for="pais">País</label>
+    <select id="pais">
+      <option value="CL" selected>Chile (CLP)</option>
+      <option value="US">Estados Unidos (USD)</option>
+    </select>
+
+    <button id="btnBuscar" onclick="pedirRecomendacion()">Obtener recomendaciones</button>
+    <div id="status"></div>
+  </div>
+
+  <div id="resultados"></div>
+</div>
+
+<script>
+async function pedirRecomendacion() {
+  const btn = document.getElementById('btnBuscar');
+  const statusEl = document.getElementById('status');
+  const resultadosEl = document.getElementById('resultados');
+  const apiUrl = document.getElementById('apiUrl').value.trim();
+
+  const preocupaciones = Array.from(
+    document.querySelectorAll('.checks input:checked')
+  ).map(el => el.value);
+
+  if (preocupaciones.length === 0) {
+    statusEl.textContent = 'Selecciona al menos una preocupación.';
+    statusEl.className = 'error';
+    return;
+  }
+
+  const presupuestoRaw = document.getElementById('presupuesto').value;
+
+  const payload = {
+    tipo_piel: document.getElementById('tipoPiel').value,
+    preocupaciones: preocupaciones,
+    presupuesto_max_usd: presupuestoRaw ? parseFloat(presupuestoRaw) : null,
+    pais: document.getElementById('pais').value.trim() || 'CL'
+  };
+
+  btn.disabled = true;
+  statusEl.className = '';
+  statusEl.textContent = 'Consultando la API...';
+  resultadosEl.innerHTML = '';
+
+  try {
+    const resp = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!resp.ok) {
+      const errBody = await resp.text();
+      throw new Error(`HTTP ${resp.status}: ${errBody}`);
+    }
+
+    const data = await resp.json();
+    renderResultados(data);
+
+    if (data.mensaje) {
+      statusEl.className = data.resultados.length === 0 ? 'error' : '';
+      statusEl.textContent = data.mensaje;
+    } else {
+      statusEl.textContent = `${data.resultados.length} resultado(s) recibido(s).`;
+    }
+
+  } catch (err) {
+    statusEl.className = 'error';
+    statusEl.textContent = 'Error al conectar con la API: ' + err.message +
+      ' — revisa que uvicorn esté corriendo y que la URL sea correcta.';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderResultados(data) {
+  const resultadosEl = document.getElementById('resultados');
+  const items = data.resultados ?? [];
+
+  if (items.length === 0) {
+    resultadosEl.innerHTML = '<p style="color:#7a7168;font-size:0.9rem;">Sin resultados para este perfil.</p>';
+    return;
+  }
+
+  resultadosEl.innerHTML = items.map(item => `
+    <div class="card">
+      <div class="card-top">
+        <span class="card-name">${item.nombre}</span>
+        <span class="card-score">score: ${item.score_match}</span>
+      </div>
+      <div class="card-meta">
+        ${item.origen} · ${item.ingrediente_clave} · $${item.precio_local} ${item.moneda_local}
+      </div>
+      ${item.link_compra ? `<a href="${item.link_compra}" target="_blank">Ver producto →</a>` : ''}
+    </div>
+  `).join('');
+}
+</script>
+</body>
+</html>
