@@ -1,18 +1,3 @@
-"""
-Generador de dataset SIMULADO (sintético) para el estudio comparativo
-K-Beauty vs Skincare Tradicional.
-
-IMPORTANTE: Estos NO son datos de un estudio real publicado. Son datos
-sintéticos construidos con distribuciones estadísticas razonables,
-inspiradas en tendencias generales reportadas de forma recurrente en
-encuestas de consumidoras (ej. mayor tolerancia percibida y foco en
-hidratación/barrera cutánea en K-Beauty; mayor variabilidad de precio
-y foco en activos "tratamiento" en marcas occidentales). Sirven como
-placeholder para practicar el pipeline de análisis; si el proyecto es
-académico formal, se recomienda sustituir esta data por una encuesta
-propia o por datos de estudios dermatológicos citables.
-"""
-
 import numpy as np
 import pandas as pd
 
