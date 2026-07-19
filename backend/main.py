@@ -1,34 +1,65 @@
 """
-main.py — v4:
-  1) Presupuesto "soft limit": si nadie califica dentro del presupuesto,
-     devuelve las opciones mas economicas que sí matchean el perfil,
-     en vez de dejar la lista vacía.
-  2) Tipo de piel 'grasa' y 'mixta' unificados en 'grasa_mixta'.
-  3) Solo paises CL y US (se elimina MX).
+main.py — v5: conectado a PostgreSQL via SQLAlchemy.
+En vez de devolver productos sueltos, ahora devuelve una RUTINA
+completa de 4 pasos (limpiador -> tonico -> serum -> crema_hidratante),
+cada uno con su funcion generica, la razon especifica del producto
+elegido, y el precio ya convertido a la moneda del pais.
 
 Correr:
+    pip install fastapi uvicorn sqlalchemy psycopg2-binary
     uvicorn main:app --reload
 """
 
 import unicodedata
 from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
+from database import get_db, settings
+from models import Producto
 
 app = FastAPI(
-    title="Skincare Recommendation API",
-    description="API de recomendacion K-Beauty vs Tradicional (modo prueba)",
-    version="0.4.0",
+    title="Skincare Routine API",
+    description="Genera una rutina de skincare completa segun el perfil del usuario",
+    version="0.6.0",
 )
 
+# CORS restrictivo: solo los origenes definidos en ALLOWED_ORIGINS (.env).
+# Nunca "*" en produccion — si el frontend corre en un origen que no esta
+# en esta lista, el navegador bloqueara la peticion (comportamiento
+# esperado, no un bug).
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.allowed_origins_list,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
+
+PASOS_RUTINA = ["limpiador", "tonico", "serum", "crema_hidratante"]
+
+NOMBRE_PASO = {
+    "limpiador": "Limpiador",
+    "tonico": "Tónico",
+    "serum": "Serum",
+    "crema_hidratante": "Crema Hidratante",
+}
+
+# Funcion GENERICA de cada paso (no depende del producto elegido)
+FUNCION_PASO = {
+    "limpiador": "Elimina impurezas, exceso de sebo y residuos de protector solar/maquillaje sin resecar la piel, dejandola lista para el resto de la rutina.",
+    "tonico": "Reequilibra el pH de la piel despues de la limpieza y ayuda a que los siguientes productos se absorban mejor.",
+    "serum": "Aporta una concentracion alta de ingredientes activos enfocados en una preocupacion especifica (acne, manchas, hidratacion, etc).",
+    "crema_hidratante": "Sella la hidratacion de los pasos anteriores y refuerza la barrera cutanea, reduciendo la perdida de agua a lo largo del dia.",
+}
+
+TASAS_CAMBIO = {
+    "CL": {"moneda": "CLP", "tasa": 950},
+    "US": {"moneda": "USD", "tasa": 1},
+}
+TASA_DEFAULT = {"moneda": "USD", "tasa": 1}
 
 
 def normalizar(texto: str) -> str:
@@ -38,187 +69,113 @@ def normalizar(texto: str) -> str:
     return sin_tildes.strip().lower()
 
 
-# --- Tasas de conversion de PRUEBA — solo CL y US por ahora ---
-TASAS_CAMBIO = {
-    "CL": {"moneda": "CLP", "tasa": 950},
-    "US": {"moneda": "USD", "tasa": 1},
-}
-TASA_DEFAULT = {"moneda": "USD", "tasa": 1}
-
-
 def convertir_precio(precio_usd: float, pais: str) -> tuple[float, str]:
     info = TASAS_CAMBIO.get(pais.upper(), TASA_DEFAULT)
-    precio_convertido = round(precio_usd * info["tasa"], 2)
-    return precio_convertido, info["moneda"]
+    return round(float(precio_usd) * info["tasa"], 2), info["moneda"]
 
 
 class PerfilRequest(BaseModel):
     tipo_piel: str
-    preocupaciones: List[str]
+    preocupaciones: List[str] = []
     presupuesto_max_usd: Optional[float] = Field(default=None, ge=0)
     pais: str = "CL"
 
 
-class ProductoResponse(BaseModel):
-    nombre: str
+class PasoRutinaResponse(BaseModel):
+    paso: str                    # "Limpiador", "Tónico", ...
+    funcion_paso: str            # que hace este paso en general
+    nombre_producto: str
     origen: str
-    ingrediente_clave: str
+    razon_recomendacion: str     # por que ESTE producto para ESTE tipo de piel
     precio_local: float
     moneda_local: str
-    score_match: float
     link_compra: Optional[str] = None
 
 
-class RecomendacionResponse(BaseModel):
-    resultados: List[ProductoResponse]
+class RutinaResponse(BaseModel):
+    rutina: List[PasoRutinaResponse]
     mensaje: Optional[str] = None
 
 
-# --- Catalogo: 'grasa' y 'mixta' ya unificados como 'grasa_mixta' ---
-CATALOGO = [
-    {
-        "nombre": "Skin1004 Madagascar Centella Ampoule",
-        "origen": "Coreano",
-        "ingrediente_clave": "centella asiatica",
-        "tipos_piel": ["grasa_mixta", "sensible"],
-        "preocupaciones": ["acne", "rojeces"],
-        "precio_usd": 17.0,
-        "link_compra": "https://skin1004.com/",
-    },
-    {
-        "nombre": "COSRX Advanced Snail 96 Mucin Power Essence",
-        "origen": "Coreano",
-        "ingrediente_clave": "mucina de caracol",
-        "tipos_piel": ["seca", "normal", "grasa_mixta"],
-        "preocupaciones": ["textura_irregular", "deshidratacion"],
-        "precio_usd": 19.5,
-        "link_compra": "https://www.cosrx.com/",
-    },
-    {
-        "nombre": "Beauty of Joseon Glow Serum",
-        "origen": "Coreano",
-        "ingrediente_clave": "propoleo + niacinamida",
-        "tipos_piel": ["normal", "grasa_mixta", "seca"],
-        "preocupaciones": ["manchas", "textura_irregular"],
-        "precio_usd": 16.0,
-        "link_compra": "https://beautyofjoseon.com/",
-    },
-    {
-        "nombre": "Some By Mi AHA-BHA-PHA 30 Days Miracle Toner",
-        "origen": "Coreano",
-        "ingrediente_clave": "complejo AHA/BHA/PHA",
-        "tipos_piel": ["grasa_mixta"],
-        "preocupaciones": ["acne", "textura_irregular"],
-        "precio_usd": 22.0,
-        "link_compra": "https://somebymi.com/",
-    },
-    {
-        "nombre": "Etude House SoonJung Calming Serum",
-        "origen": "Coreano",
-        "ingrediente_clave": "panthenol + centella",
-        "tipos_piel": ["sensible", "seca"],
-        "preocupaciones": ["rojeces", "deshidratacion"],
-        "precio_usd": 15.0,
-        "link_compra": "https://etudehouse.com/",
-    },
-    {
-        "nombre": "The Ordinary Niacinamide 10% + Zinc 1%",
-        "origen": "Tradicional",
-        "ingrediente_clave": "niacinamida",
-        "tipos_piel": ["grasa_mixta"],
-        "preocupaciones": ["acne", "manchas"],
-        "precio_usd": 9.0,
-        "link_compra": "https://theordinary.com/",
-    },
-    {
-        "nombre": "CeraVe Moisturizing Cream",
-        "origen": "Tradicional",
-        "ingrediente_clave": "ceramidas",
-        "tipos_piel": ["seca", "sensible", "normal"],
-        "preocupaciones": ["deshidratacion", "rojeces"],
-        "precio_usd": 16.0,
-        "link_compra": "https://www.cerave.com/",
-    },
-]
-
-
-def score_producto(producto: dict, tipo_piel: str, preocupaciones: List[str]) -> float:
-    score = 0.0
-    if tipo_piel in producto["tipos_piel"]:
-        score += 5.0
-    coincidencias = set(preocupaciones) & set(producto["preocupaciones"])
-    score += 3.0 * len(coincidencias)
-    return score
+def _score(producto: Producto, preocupaciones_norm: List[str]) -> float:
+    coincidencias = set(preocupaciones_norm) & set(producto.preocupaciones or [])
+    return 3.0 * len(coincidencias)
 
 
 @app.get("/")
 def health_check():
-    return {"status": "ok", "servicio": "skincare-recommendation-api"}
+    return {"status": "ok", "servicio": "skincare-routine-api"}
 
 
-@app.post("/recomendar", response_model=RecomendacionResponse)
-def recomendar_productos(perfil: PerfilRequest):
-    if not perfil.preocupaciones:
-        raise HTTPException(
-            status_code=400,
-            detail="Debes indicar al menos una preocupacion de piel.",
-        )
-
+@app.post("/recomendar", response_model=RutinaResponse)
+def recomendar_rutina(perfil: PerfilRequest, db: Session = Depends(get_db)):
     tipo_piel_norm = normalizar(perfil.tipo_piel)
     preocupaciones_norm = [normalizar(p) for p in perfil.preocupaciones]
 
-    # --- 1. Match por perfil (tipo de piel + preocupaciones), SIN mirar presupuesto ---
-    candidatos_perfil = []
-    for producto in CATALOGO:
-        score = score_producto(producto, tipo_piel_norm, preocupaciones_norm)
-        if score > 0:
-            candidatos_perfil.append((producto, score))
+    rutina = []
+    hubo_fallback_presupuesto = False
 
-    if not candidatos_perfil:
-        return RecomendacionResponse(
-            resultados=[],
-            mensaje="No se encontraron productos que coincidan con tu tipo de piel o preocupaciones.",
-        )
+    for paso in PASOS_RUTINA:
+        # Traemos de la BD todos los productos de este paso; el filtro
+        # de tipo de piel se hace en Python porque el catalogo es chico
+        # y evita depender de sintaxis especifica de arrays de Postgres.
+        productos_paso = db.query(Producto).filter(
+            Producto.categoria_paso == paso,
+            Producto.activo == True,  # noqa: E712
+        ).all()
 
-    # --- 2. Presupuesto: soft limit con fallback a las opciones mas economicas ---
-    mensaje = None
-    if perfil.presupuesto_max_usd is not None:
-        dentro_presupuesto = [
-            (p, s) for p, s in candidatos_perfil if p["precio_usd"] <= perfil.presupuesto_max_usd
+        candidatos = [
+            p for p in productos_paso if tipo_piel_norm in (p.tipos_piel or [])
         ]
-        if dentro_presupuesto:
-            candidatos = sorted(dentro_presupuesto, key=lambda x: x[1], reverse=True)
-        else:
-            # Nadie que matchea el perfil entra en el presupuesto ->
-            # ofrecemos las mas economicas que SI matchean el perfil.
-            candidatos = sorted(candidatos_perfil, key=lambda x: x[0]["precio_usd"])[:3]
-            mensaje = (
-                "El presupuesto ingresado es muy bajo, pero estas son las "
-                "opciones mas economicas recomendadas para tu tipo de piel."
-            )
-    else:
-        candidatos = sorted(candidatos_perfil, key=lambda x: x[1], reverse=True)
 
-    # --- 3. Conversion de moneda y armado de respuesta ---
-    resultados = []
-    for producto, score in candidatos[:3]:
-        precio_local, moneda_local = convertir_precio(producto["precio_usd"], perfil.pais)
-        resultados.append(ProductoResponse(
-            nombre=producto["nombre"],
-            origen=producto["origen"],
-            ingrediente_clave=producto["ingrediente_clave"],
+        if not candidatos:
+            # No hay ningun producto de este paso para ese tipo de piel.
+            # No debería pasar con el catalogo de prueba, pero si el
+            # catalogo real queda incompleto, es mejor omitir el paso
+            # que romper toda la rutina.
+            continue
+
+        # Filtro de presupuesto POR PASO (soft limit, mismo criterio
+        # que ya usamos antes: si nadie entra, cae al mas barato).
+        elegido = None
+        if perfil.presupuesto_max_usd is not None:
+            dentro = [p for p in candidatos if float(p.precio_usd) <= perfil.presupuesto_max_usd]
+            if dentro:
+                elegido = max(dentro, key=lambda p: _score(p, preocupaciones_norm))
+            else:
+                elegido = min(candidatos, key=lambda p: float(p.precio_usd))
+                hubo_fallback_presupuesto = True
+        else:
+            elegido = max(candidatos, key=lambda p: _score(p, preocupaciones_norm))
+
+        precio_local, moneda_local = convertir_precio(elegido.precio_usd, perfil.pais)
+
+        rutina.append(PasoRutinaResponse(
+            paso=NOMBRE_PASO[paso],
+            funcion_paso=FUNCION_PASO[paso],
+            nombre_producto=elegido.nombre_producto,
+            origen=elegido.origen,
+            razon_recomendacion=elegido.razon_tipo_piel,
             precio_local=precio_local,
             moneda_local=moneda_local,
-            score_match=round(score, 2),
-            link_compra=producto["link_compra"],
+            link_compra=elegido.link_compra,
         ))
 
-    return RecomendacionResponse(resultados=resultados, mensaje=mensaje)
+    if not rutina:
+        raise HTTPException(
+            status_code=404,
+            detail="No se pudo armar una rutina para ese tipo de piel con el catalogo actual.",
+        )
+
+    mensaje = None
+    if hubo_fallback_presupuesto:
+        mensaje = (
+            "El presupuesto ingresado no alcanzaba para algunos pasos con mejor "
+            "match; se eligieron las alternativas mas economicas para completar la rutina."
+        )
+
+    return RutinaResponse(rutina=rutina, mensaje=mensaje)
 
 
-# Ejemplos para /docs:
-# 1) Presupuesto muy bajo pero perfil valido -> fallback con mensaje:
-# {"tipo_piel":"grasa_mixta","preocupaciones":["acne"],"presupuesto_max_usd":1,"pais":"CL"}
-#
-# 2) Sin presupuesto, pais US:
-# {"tipo_piel":"grasa_mixta","preocupaciones":["acne","rojeces"],"pais":"US"}
+# Ejemplo de request:
+# {"tipo_piel": "grasa_mixta", "preocupaciones": ["acne"], "pais": "CL"}

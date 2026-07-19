@@ -1,0 +1,11 @@
+# Variables de entorno con credenciales reales — NUNCA subir esto a git
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Datos generados
+*.png

@@ -3,160 +3,324 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Skincare Recommender — Test Frontend</title>
+<title>Rutina Skincare — Recomendador</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #faf8f5;
-    --panel: #ffffff;
-    --border: #e4ddd3;
-    --text: #2b2621;
-    --muted: #7a7168;
-    --accent: #5f7a61;
-    --accent-dark: #46603f;
-    --error: #b3452f;
+    --paper: #FAF7F1;
+    --card: #FFFFFF;
+    --ink: #2A2620;
+    --ink-soft: #6F6A60;
+    --line: #E7E1D3;
+    --sage: #5F7A5B;
+    --sage-deep: #3E5439;
+    --sage-tint: #E7EEE3;
+    --clay: #C97B62;
+    --clay-deep: #8C4A36;
+    --clay-tint: #F3E3DC;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    padding: 32px 16px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Work Sans", -apple-system, sans-serif;
+    padding: 48px 20px 80px;
   }
-  .wrap { max-width: 640px; margin: 0 auto; }
-  h1 { font-size: 1.4rem; margin-bottom: 4px; }
-  .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
+  .wrap { max-width: 600px; margin: 0 auto; }
 
+  .eyebrow {
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sage-deep);
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: 2rem;
+    line-height: 1.15;
+    margin: 0 0 6px;
+  }
+  .subtitle {
+    color: var(--ink-soft);
+    font-size: 0.94rem;
+    margin: 0 0 32px;
+    max-width: 46ch;
+  }
+
+  /* ---------- Formulario ---------- */
   .panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 24px;
-    margin-bottom: 20px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 26px 26px 22px;
+    margin-bottom: 40px;
   }
-
-  label { display: block; font-size: 0.85rem; font-weight: 600; margin: 14px 0 6px; }
-  select, input {
+  fieldset { border: none; padding: 0; margin: 0 0 18px; }
+  legend {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 8px;
+    padding: 0;
+  }
+  label.field-label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  select, input[type="number"], input[type="text"] {
     width: 100%;
-    padding: 9px 10px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    font-size: 0.95rem;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.92rem;
     background: #fff;
+    color: var(--ink);
   }
-  .checks { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
-  .checks label {
+  select:focus, input:focus {
+    outline: none;
+    border-color: var(--sage);
+  }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+
+  .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
     display: flex; align-items: center; gap: 6px;
-    font-weight: 400; font-size: 0.88rem;
-    border: 1px solid var(--border);
-    padding: 6px 10px; border-radius: 20px; margin: 0;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 7px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--ink);
+    user-select: none;
+  }
+  .chip input { width: auto; margin: 0; accent-color: var(--sage); }
+
+  details.config { margin-bottom: 18px; }
+  details.config summary {
+    font-size: 0.76rem;
+    color: var(--ink-soft);
     cursor: pointer;
   }
-  .checks input { width: auto; }
+  details.config input {
+    margin-top: 8px;
+    font-size: 0.8rem;
+  }
 
-  button {
-    margin-top: 20px;
+  button.submit {
     width: 100%;
-    padding: 11px;
-    background: var(--accent);
+    padding: 13px;
+    background: var(--sage-deep);
     color: #fff;
     border: none;
-    border-radius: 6px;
-    font-size: 0.95rem;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 0.94rem;
     font-weight: 600;
     cursor: pointer;
+    margin-top: 4px;
   }
-  button:hover { background: var(--accent-dark); }
-  button:disabled { background: var(--muted); cursor: not-allowed; }
+  button.submit:hover { background: var(--sage); }
+  button.submit:disabled { background: #B8B3A6; cursor: not-allowed; }
 
-  #status { font-size: 0.85rem; color: var(--muted); margin-top: 10px; min-height: 18px; }
-  #status.error { color: var(--error); }
+  #status {
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    margin-top: 12px;
+    min-height: 16px;
+  }
+  #status.error { color: var(--clay-deep); }
 
-  .card {
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px 16px;
+  /* ---------- Banner de mensaje (ej. fallback de presupuesto) ---------- */
+  .banner {
+    background: var(--clay-tint);
+    color: var(--clay-deep);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    margin-bottom: 24px;
+  }
+
+  /* ---------- Rutina: tarjetas numeradas apiladas ---------- */
+  .routine { position: relative; }
+  .step {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 16px;
+    padding-bottom: 28px;
+    position: relative;
+  }
+  .step:not(:last-child)::before {
+    content: "";
+    position: absolute;
+    left: 19px;
+    top: 44px;
+    bottom: 0;
+    width: 1px;
+    background: var(--line);
+  }
+  .step-num {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: 1.5rem;
+    color: var(--sage-deep);
+    line-height: 1;
+    padding-top: 2px;
+  }
+  .step-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .step-name {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--sage-deep);
+    margin: 0 0 6px;
+  }
+  .step-funcion {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    margin: 0 0 14px;
+    line-height: 1.5;
+  }
+  .step-product {
+    font-family: "Fraunces", serif;
+    font-size: 1.08rem;
+    font-weight: 500;
+    margin: 0 0 3px;
+  }
+  .step-origin {
+    display: inline-block;
+    font-size: 0.72rem;
+    color: var(--sage-deep);
+    background: var(--sage-tint);
+    padding: 2px 9px;
+    border-radius: 20px;
     margin-bottom: 10px;
-    background: var(--panel);
   }
-  .card-top { display: flex; justify-content: space-between; align-items: baseline; }
-  .card-name { font-weight: 600; font-size: 0.95rem; }
-  .card-score {
-    font-size: 0.75rem; color: var(--accent-dark);
-    background: #eef2ec; padding: 2px 8px; border-radius: 12px;
+  .step-razon {
+    font-size: 0.87rem;
+    line-height: 1.55;
+    color: var(--ink);
+    margin: 0 0 14px;
   }
-  .card-meta { font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
-  .card a {
-    display: inline-block; margin-top: 8px; font-size: 0.85rem;
-    color: var(--accent-dark); text-decoration: none; font-weight: 600;
+  .step-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
   }
-  .card a:hover { text-decoration: underline; }
+  .step-price {
+    font-family: "Fraunces", serif;
+    font-size: 1.05rem;
+    font-weight: 500;
+  }
+  .step-price small {
+    font-family: "Work Sans", sans-serif;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+    margin-left: 4px;
+  }
+  .step-link {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--clay-deep);
+    text-decoration: none;
+    border: 1px solid var(--clay);
+    padding: 6px 14px;
+    border-radius: 20px;
+  }
+  .step-link:hover { background: var(--clay-tint); }
 
-  #config { font-size: 0.78rem; color: var(--muted); margin-top: 6px; }
-  #config input { display: inline; width: auto; font-size: 0.78rem; padding: 3px 6px; }
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Skincare Recommender</h1>
-  <p class="subtitle">Frontend de prueba — envía un perfil y muestra la respuesta real de tu API</p>
+  <p class="eyebrow">Recomendador K-Beauty</p>
+  <h1>Tu rutina, en 4 pasos</h1>
+  <p class="subtitle">Elige tu tipo de piel y te armamos una rutina esencial completa: limpiador, tónico, serum y crema hidratante.</p>
 
   <div class="panel">
-    <div id="config">
-      URL de la API:
+    <fieldset>
+      <legend>Tipo de piel</legend>
+      <select id="tipoPiel">
+        <option value="grasa">Grasa</option>
+        <option value="mixta">Mixta</option>
+        <option value="grasa_mixta" selected>Mixta / Grasa</option>
+        <option value="seca">Seca</option>
+        <option value="sensible">Sensible</option>
+        <option value="normal">Normal</option>
+      </select>
+    </fieldset>
+
+    <fieldset>
+      <legend>Preocupaciones</legend>
+      <div class="chip-group">
+        <label class="chip"><input type="checkbox" value="acne" checked> Acné</label>
+        <label class="chip"><input type="checkbox" value="manchas"> Manchas</label>
+        <label class="chip"><input type="checkbox" value="rojeces" checked> Rojeces</label>
+        <label class="chip"><input type="checkbox" value="arrugas"> Arrugas</label>
+        <label class="chip"><input type="checkbox" value="deshidratacion"> Deshidratación</label>
+        <label class="chip"><input type="checkbox" value="textura_irregular"> Textura irregular</label>
+      </div>
+    </fieldset>
+
+    <div class="grid-2">
+      <div>
+        <label class="field-label" for="presupuesto">Presupuesto por producto (USD, opcional)</label>
+        <input type="number" id="presupuesto" placeholder="ej. 20" min="0">
+      </div>
+      <div>
+        <label class="field-label" for="pais">País</label>
+        <select id="pais">
+          <option value="CL" selected>Chile (CLP)</option>
+          <option value="US">Estados Unidos (USD)</option>
+        </select>
+      </div>
+    </div>
+
+    <details class="config">
+      <summary>URL de la API (avanzado)</summary>
       <input type="text" id="apiUrl" value="http://127.0.0.1:8000/recomendar">
-    </div>
+    </details>
 
-    <label for="tipoPiel">Tipo de piel</label>
-    <select id="tipoPiel">
-      <option value="grasa_mixta" selected>Grasa / Mixta</option>
-      <option value="seca">Seca</option>
-      <option value="sensible">Sensible</option>
-      <option value="normal">Normal</option>
-    </select>
-
-    <label>Preocupaciones</label>
-    <div class="checks">
-      <label><input type="checkbox" value="acne" checked> Acné</label>
-      <label><input type="checkbox" value="manchas"> Manchas</label>
-      <label><input type="checkbox" value="rojeces" checked> Rojeces</label>
-      <label><input type="checkbox" value="arrugas"> Arrugas</label>
-      <label><input type="checkbox" value="deshidratacion"> Deshidratación</label>
-      <label><input type="checkbox" value="textura_irregular"> Textura irregular</label>
-    </div>
-
-    <label for="presupuesto">Presupuesto máximo (USD, opcional)</label>
-    <input type="number" id="presupuesto" placeholder="ej. 25" min="0">
-
-    <label for="pais">País</label>
-    <select id="pais">
-      <option value="CL" selected>Chile (CLP)</option>
-      <option value="US">Estados Unidos (USD)</option>
-    </select>
-
-    <button id="btnBuscar" onclick="pedirRecomendacion()">Obtener recomendaciones</button>
+    <button class="submit" id="btnBuscar" onclick="pedirRutina()">Armar mi rutina</button>
     <div id="status"></div>
   </div>
 
-  <div id="resultados"></div>
+  <div id="resultado"></div>
 </div>
 
 <script>
-async function pedirRecomendacion() {
+async function pedirRutina() {
   const btn = document.getElementById('btnBuscar');
   const statusEl = document.getElementById('status');
-  const resultadosEl = document.getElementById('resultados');
+  const resultadoEl = document.getElementById('resultado');
   const apiUrl = document.getElementById('apiUrl').value.trim();
 
   const preocupaciones = Array.from(
-    document.querySelectorAll('.checks input:checked')
+    document.querySelectorAll('.chip input:checked')
   ).map(el => el.value);
-
-  if (preocupaciones.length === 0) {
-    statusEl.textContent = 'Selecciona al menos una preocupación.';
-    statusEl.className = 'error';
-    return;
-  }
 
   const presupuestoRaw = document.getElementById('presupuesto').value;
 
@@ -164,13 +328,13 @@ async function pedirRecomendacion() {
     tipo_piel: document.getElementById('tipoPiel').value,
     preocupaciones: preocupaciones,
     presupuesto_max_usd: presupuestoRaw ? parseFloat(presupuestoRaw) : null,
-    pais: document.getElementById('pais').value.trim() || 'CL'
+    pais: document.getElementById('pais').value
   };
 
   btn.disabled = true;
   statusEl.className = '';
-  statusEl.textContent = 'Consultando la API...';
-  resultadosEl.innerHTML = '';
+  statusEl.textContent = 'Armando tu rutina...';
+  resultadoEl.innerHTML = '';
 
   try {
     const resp = await fetch(apiUrl, {
@@ -185,45 +349,55 @@ async function pedirRecomendacion() {
     }
 
     const data = await resp.json();
-    renderResultados(data);
-
-    if (data.mensaje) {
-      statusEl.className = data.resultados.length === 0 ? 'error' : '';
-      statusEl.textContent = data.mensaje;
-    } else {
-      statusEl.textContent = `${data.resultados.length} resultado(s) recibido(s).`;
-    }
+    renderRutina(data);
+    statusEl.textContent = '';
 
   } catch (err) {
     statusEl.className = 'error';
-    statusEl.textContent = 'Error al conectar con la API: ' + err.message +
-      ' — revisa que uvicorn esté corriendo y que la URL sea correcta.';
+    statusEl.textContent = 'No se pudo conectar con la API: ' + err.message +
+      ' — revisa que uvicorn esté corriendo y que el origen de esta página esté permitido en ALLOWED_ORIGINS.';
   } finally {
     btn.disabled = false;
   }
 }
 
-function renderResultados(data) {
-  const resultadosEl = document.getElementById('resultados');
-  const items = data.resultados ?? [];
+function renderRutina(data) {
+  const resultadoEl = document.getElementById('resultado');
+  const pasos = data.rutina ?? [];
 
-  if (items.length === 0) {
-    resultadosEl.innerHTML = '<p style="color:#7a7168;font-size:0.9rem;">Sin resultados para este perfil.</p>';
+  if (pasos.length === 0) {
+    resultadoEl.innerHTML = '<div class="empty-state">No se pudo armar una rutina con ese perfil.</div>';
     return;
   }
 
-  resultadosEl.innerHTML = items.map(item => `
-    <div class="card">
-      <div class="card-top">
-        <span class="card-name">${item.nombre}</span>
-        <span class="card-score">score: ${item.score_match}</span>
+  let html = '';
+
+  if (data.mensaje) {
+    html += `<div class="banner">${data.mensaje}</div>`;
+  }
+
+  html += '<div class="routine">';
+  pasos.forEach((paso, i) => {
+    html += `
+      <div class="step">
+        <div class="step-num">${String(i + 1).padStart(2, '0')}</div>
+        <div class="step-card">
+          <p class="step-name">${paso.paso}</p>
+          <p class="step-funcion">${paso.funcion_paso}</p>
+          <p class="step-product">${paso.nombre_producto}</p>
+          <span class="step-origin">${paso.origen}</span>
+          <p class="step-razon">${paso.razon_recomendacion}</p>
+          <div class="step-footer">
+            <div class="step-price">$${paso.precio_local}<small>${paso.moneda_local}</small></div>
+            ${paso.link_compra ? `<a class="step-link" href="${paso.link_compra}" target="_blank">Ver producto</a>` : ''}
+          </div>
+        </div>
       </div>
-      <div class="card-meta">
-        ${item.origen} · ${item.ingrediente_clave} · $${item.precio_local} ${item.moneda_local}
-      </div>
-      ${item.link_compra ? `<a href="${item.link_compra}" target="_blank">Ver producto →</a>` : ''}
-    </div>
-  `).join('');
+    `;
+  });
+  html += '</div>';
+
+  resultadoEl.innerHTML = html;
 }
 </script>
 </body>
